@@ -12,7 +12,7 @@ A lightweight tool that syncs your Plex status to Discord. It displays the movie
 ## 🚀 Setup Guide
 
 ### 1. Download & Prepare
-1.  Download `PlexRPC.exe` and `config.json` to a folder of your choice (e.g., `C:\PlexRPC`).
+1.  [Download Release](https://github.com/malvinarum/Plex-Rich-Presence/releases) `PlexRPC.exe` and `config.json` to a folder of your choice (e.g., `C:\PlexRPC`).
 2.  **Crucial:** The `.exe` and `config.json` must be in the **same folder**.
 
 ### 2. Get Your Credentials

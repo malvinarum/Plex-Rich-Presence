@@ -154,30 +154,45 @@ except Exception as e:
 
 # --- HELPERS ---
 def fetch_tmdb_image(query, media_type):
+    """
+    Fetches image and content URL from TMDB.
+    Returns: (image_url, link_url)
+    """
     try:
         if media_type == 'movie':
             results = tmdb_movie.search(query)
+            if results and results[0].poster_path:
+                img = f"https://image.tmdb.org/t/p/w500{results[0].poster_path}"
+                url = f"https://www.themoviedb.org/movie/{results[0].id}"
+                return img, url
         else:
             results = tmdb_tv.search(query)
-
-        if results and results[0].poster_path:
-            return f"https://image.tmdb.org/t/p/w500{results[0].poster_path}"
+            if results and results[0].poster_path:
+                img = f"https://image.tmdb.org/t/p/w500{results[0].poster_path}"
+                url = f"https://www.themoviedb.org/tv/{results[0].id}"
+                return img, url
     except Exception as e:
         logging.error(f"TMDB Error: {e}")
-    return "plex_logo"
+    return "plex_logo", None
 
 
 def fetch_book_metadata(query):
+    """
+    Fetches image and content URL from Google Books.
+    Returns: (image_url, link_url)
+    """
     api_key = config['google_books']['api_key']
     try:
         url = f"https://www.googleapis.com/books/v1/volumes?q={query}&key={api_key}"
         response = requests.get(url).json()
         if "items" in response and len(response["items"]) > 0:
             book = response["items"][0]["volumeInfo"]
-            return book.get("imageLinks", {}).get("thumbnail", "").replace("http://", "https://")
+            img = book.get("imageLinks", {}).get("thumbnail", "").replace("http://", "https://")
+            url = book.get("infoLink", "") # Google Books info page
+            return img, url
     except Exception as e:
         logging.error(f"Google Books Error: {e}")
-    return "plex_logo"
+    return "plex_logo", None
 
 
 def get_plex_activity():
@@ -209,7 +224,9 @@ def get_plex_activity():
             "small_image": "playing_icon",
             "small_text": "Playing",
             "start": None,
-            "end": None
+            "end": None,
+            "button_url": None,
+            "button_label": "View Details"
         }
 
         # Timer Logic
@@ -224,7 +241,8 @@ def get_plex_activity():
         if media.type == 'movie':
             status["details"] = media.title
             status["state"] = str(media.year)
-            status["large_image"] = fetch_tmdb_image(media.title, 'movie')
+            status["large_image"], status["button_url"] = fetch_tmdb_image(media.title, 'movie')
+            status["button_label"] = "View on TMDB"
 
         elif media.type == 'episode':
             show_title = media.grandparentTitle
@@ -232,7 +250,8 @@ def get_plex_activity():
             season_ep = f"S{media.parentIndex:02d}E{media.index:02d}"
             status["details"] = show_title
             status["state"] = f"{season_ep} - {episode_title}"
-            status["large_image"] = fetch_tmdb_image(show_title, 'show')
+            status["large_image"], status["button_url"] = fetch_tmdb_image(show_title, 'show')
+            status["button_label"] = "View on TMDB"
 
         elif media.type == 'track':
             lib_name = media.librarySectionTitle
@@ -240,11 +259,13 @@ def get_plex_activity():
                 status["details"] = media.title
                 status["state"] = f"by {media.originalTitle or media.grandparentTitle}"
                 query = f"{media.title} {media.originalTitle or media.grandparentTitle}"
-                status["large_image"] = fetch_book_metadata(query)
+                status["large_image"], status["button_url"] = fetch_book_metadata(query)
+                status["button_label"] = "View Book"
             else:
                 status["details"] = media.title
                 status["state"] = f"by {media.originalTitle or media.grandparentTitle}"
                 status["large_image"] = "music_icon"
+                status["button_url"] = None
 
         return status
 
@@ -262,6 +283,16 @@ def presence_loop():
         activity = get_plex_activity()
 
         if activity:
+            # Build Buttons
+            buttons = []
+
+            # Button 1: Static
+            buttons.append({"label": "Get PlexRPC", "url": "https://github.com/malvinarum/Plex-Rich-Presence"})
+
+            # Button 2: Dynamic (Only if URL exists)
+            if activity.get("button_url"):
+                buttons.append({"label": activity["button_label"], "url": activity["button_url"]})
+
             try:
                 RPC.update(
                     details=activity["details"],
@@ -271,7 +302,8 @@ def presence_loop():
                     small_image=activity["small_image"],
                     small_text=activity["small_text"],
                     start=activity["start"],
-                    end=activity["end"]
+                    end=activity["end"],
+                    buttons=buttons
                 )
                 logging.debug(f"Updated: {activity['details']}")
             except Exception as e:

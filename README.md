@@ -2,17 +2,22 @@
 
 A lightweight tool that syncs your Plex status to Discord. It displays the movie, TV show, or audiobook you are currently enjoying on your Discord profile with rich metadata and cover art.
 
+## 📸 Preview
+
+![Plex Rich Presence Demo](https://s12.gifyu.com/images/bEw0W.png)
+
 ## ✨ Features
 
 * **Zero Install:** Runs as a portable executable.
 * **Rich Metadata:** Shows movie posters, episode titles, and progress bars.
 * **Audiobook Support:** Detects audiobooks and fetches covers from Google Books.
+* **Interactive Buttons:** Direct links to "View on TMDB" or "Get PlexRPC" right from your status.
 * **Smart Idle:** Automatically clears your Discord status when you stop watching.
 
 ## 🚀 Setup Guide
 
 ### 1. Download & Prepare
-1.  [Download Release](https://github.com/malvinarum/Plex-Rich-Presence/releases) `PlexRPC.exe` and `config.json` to a folder of your choice (e.g., `C:\PlexRPC`).
+1.  [Download Release](https://github.com/malvinarum/Plex-Rich-Presence/releases) `PlexRPC.exe` and `config.example.json` to a folder of your choice (e.g., `C:\PlexRPC`).
 2.  **Crucial:** The `.exe` and `config.json` must be in the **same folder**.
 
 ### 2. Get Your Credentials
@@ -35,7 +40,8 @@ To make this work, you need to fill in `config.json`. Here is how to find the tr
     * `playing_icon` (Small status icon)
 
 ### 3. Edit Configuration
-Open `config.json` with Notepad (or any text editor) and paste your keys:
+1.  Rename `config.example.json` to `config.json` (or just run the app once, and it will create it for you).
+2.  Open `config.json` with Notepad and paste your keys:
 
 ```json
 {

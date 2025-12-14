@@ -29,7 +29,7 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
 ## 🛠️ Troubleshooting
 
 **"I want to reset my settings"**
-* Since v1.3, settings are stored in your Windows AppData folder.
+* Since v1.2, settings are stored in your Windows AppData folder.
 * To reset, simply **delete** the file: `C:\Users\%USERNAME%\AppData\Roaming\PlexRPC\session.json`
 * Restart the app, and the wizard will reappear.
 

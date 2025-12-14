@@ -1,67 +1,67 @@
-# Plex Discord RPC 🎬
+# PlexRPC - Advanced Discord Rich Presence for Plex
 
-A lightweight tool that syncs your Plex status to Discord. It displays the movie, TV show, or audiobook you are currently enjoying on your Discord profile with rich metadata and cover art.
+<img src="https://raw.githubusercontent.com/malvinarum/Plex-Rich-Presence/refs/heads/main/icon.png" width="300"> 
 
-## 📸 Preview
+**PlexRPC** is a modern, lightweight, and user-friendly application that syncs your Plex media status to your Discord profile. 
 
-![Plex Rich Presence Demo](https://s12.gifyu.com/images/bEw0W.png)
+Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from logging in to selecting your specific user profile.
 
-## ✨ Features
+## 🌟 Key Features (v1.2)
 
-* **Zero Install:** Runs as a portable executable.
-* **Rich Metadata:** Shows movie posters, episode titles, and progress bars.
-* **Audiobook Support:** Detects audiobooks and fetches covers from Google Books.
-* **Interactive Buttons:** Direct links to "View on TMDB" or "Get PlexRPC" right from your status.
-* **Smart Idle:** Automatically clears your Discord status when you stop watching.
+* **🧙‍♂️ Unified Setup Wizard:** A beautiful, guided GUI walks you through Login, Server Selection, User Profile, and Library setup. No text files required!
+* **🔒 Secure & Private:** Uses Plex OAuth for secure login. Your password never touches our app.
+* **☁️ Cloud Metadata API:** Powered by a custom backend to fetch high-quality covers from TMDB (Movies/TV) and Google Books (Audiobooks)
+* **🎧 Audiobook Support:** Automatically detects audiobook libraries and fetches book covers and author details instead of generic Plex metadata.
+* **👥 Multi-User Support:** Works perfectly with Plex Home / Managed Users. You pick exactly which profile to track.
+* **🚀 "Pro" Architecture:** Runs silently in the System Tray with live status tooltips. Configuration is safely stored in your `%APPDATA%` folder.
 
-## 🚀 Setup Guide
+## 📥 Installation
 
-### 1. Download & Prepare
-1.  [Download Release](https://github.com/malvinarum/Plex-Rich-Presence/releases) `PlexRPC.exe` and `config.example.json` to a folder of your choice (e.g., `C:\PlexRPC`).
-2.  **Crucial:** The `.exe` and `config.json` must be in the **same folder**.
+1.  Download the latest **`PlexRPC.exe`** from the [Releases Page](https://github.com/malvinarum/Plex-Rich-Presence/releases).
+2.  Double-click to run.
+3.  Follow the on-screen **Setup Wizard**:
+    * **Login:** A browser window will open to link your Plex account.
+    * **Server:** Choose which Plex Media Server to track.
+    * **User:** Select your specific user profile (great for shared family servers).
+    * **Libraries:** (Optional) Check any libraries that contain Audiobooks.
+4.  **Done!** The app will minimize to your system tray and start updating your Discord status.
 
-### 2. Get Your Credentials
-To make this work, you need to fill in `config.json`. Here is how to find the tricky values:
+## 🛠️ Troubleshooting
 
-#### 🔑 How to get your Plex Token
-1.  Open [Plex Web](https://app.plex.tv) in your browser.
-2.  Click on any Movie or TV Episode in your library.
-3.  Click the **Three Dots (⋮)** icon -> **Get Info**.
-4.  At the bottom of the pop-up, click **View XML**.
-5.  Look at the URL in your browser address bar. The token is the text at the very end:
-    * `...&X-Plex-Token=YOUR_TOKEN_HERE`
+**"I want to reset my settings"**
+* Since v1.3, settings are stored in your Windows AppData folder.
+* To reset, simply **delete** the file: `C:\Users\%USERNAME%\AppData\Roaming\PlexRPC\session.json`
+* Restart the app, and the wizard will reappear.
 
-#### 🤖 How to get a Discord App ID
-1.  Go to the [Discord Developer Portal](https://discord.com/developers/applications).
-2.  Click **New Application** -> Name it (e.g., "Plex").
-3.  Copy the **Application ID** (Client ID).
-4.  **Important:** Go to the "Rich Presence" -> "Art Assets" tab and upload two images named exactly:
-    * `plex_logo` (Large generic image)
-    * `playing_icon` (Small status icon)
+**"It says Idle when I'm playing something"**
+* This usually means you selected the wrong **User Profile** during setup.
+* If your server has "Malvin" (Admin) and "Kids" (Managed User), make sure you select the one you actually watch on.
 
-### 3. Edit Configuration
-1.  Rename `config.example.json` to `config.json` (or just run the app once, and it will create it for you).
-2.  Open `config.json` with Notepad and paste your keys:
+## 🧑‍💻 Development
 
-```json
-{
-    "discord": {
-        "client_id": "PASTE_DISCORD_APP_ID_HERE"
-    },
-    "plex": {
-        "base_url": "http://YOUR_PLEX_IP:32400",
-        "token": "PASTE_PLEX_TOKEN_HERE",
-        "user_filter": "", 
-        "audiobook_libraries": ["Audiobooks", "Books"]
-    },
-    "tmdb": {
-        "api_key": "PASTE_TMDB_API_KEY_HERE"
-    },
-    "google_books": {
-        "api_key": "PASTE_GOOGLE_BOOKS_API_KEY_HERE"
-    },
-    "settings": {
-        "update_interval": 15,
-        "log_level": "INFO"
-    }
-}
+If you want to run from source or build it yourself:
+
+1.  **Clone the repo:**
+    ```bash
+    git clone [https://github.com/malvinarum/Plex-Rich-Presence.git](https://github.com/malvinarum/Plex-Rich-Presence.git)
+    cd Plex-Rich-Presence
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Run locally:**
+    ```bash
+    python main.py
+    ```
+
+4.  **Build .exe (PyInstaller):**
+    ```bash
+    pyinstaller --noconsole --onefile --clean --name "PlexRPC" --icon="icon.ico" --add-data "icon.png;." --add-data "icon.ico;." main.py
+    ```
+
+## 📜 License
+
+This project is open-source. Feel free to fork, modify, and distribute.

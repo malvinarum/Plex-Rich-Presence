@@ -30,6 +30,13 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
     * **Libraries:** (Optional) Check any libraries that contain Audiobooks.
 4.  **Done!** The app will minimize to your system tray and start updating your Discord status.
 
+## Screenshots
+<img width="452" height="582" alt="plex_rpc_1" src="https://github.com/user-attachments/assets/66b6260a-c120-40a2-a051-c2985e1b929b" />
+<img width="452" height="582" alt="plex_rpc_2" src="https://github.com/user-attachments/assets/0873b9ee-a67d-433c-86b3-8b72ee5d2a6f" />
+<img width="452" height="582" alt="plex_rpc_3" src="https://github.com/user-attachments/assets/8ee6828b-d83f-4918-bd3a-c3ae2bc90523" />
+<img width="452" height="582" alt="plex_rpc_4" src="https://github.com/user-attachments/assets/0481e691-6286-4db6-9c04-7a922673cf84" />
+<img width="326" height="212" alt="plex_rpc_5" src="https://github.com/user-attachments/assets/205cf55a-273a-4b15-a42e-38769cef9a8e" />
+
 ## 🛠️ Troubleshooting
 
 **"I want to reset my settings"**

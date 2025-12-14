@@ -2,6 +2,10 @@
 
 <img src="https://raw.githubusercontent.com/malvinarum/Plex-Rich-Presence/refs/heads/main/icon.png" width="300"> 
 
+![Version](https://img.shields.io/github/v/release/malvinarum/Plex-Rich-Presence?style=for-the-badge&color=e5a00d&label=RELEASE)
+![Downloads](https://img.shields.io/github/downloads/malvinarum/Plex-Rich-Presence/total?style=for-the-badge&color=2d2d2d)
+![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
+
 **PlexRPC** is a modern, lightweight, and user-friendly application that syncs your Plex media status to your Discord profile. 
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from logging in to selecting your specific user profile.

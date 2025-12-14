@@ -1,0 +1,6 @@
+requests
+PlexAPI
+pypresence
+pystray
+Pillow
+pyinstaller

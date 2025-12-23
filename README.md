@@ -63,12 +63,15 @@ If you want to run from source or build it yourself:
     pip install -r requirements.txt
     ```
 
-3.  **Run locally:**
+3.  **Setup backend (If you want to use your own api):**
+https://github.com/malvinarum/plexrpc-api
+
+4.  **Run locally:**
     ```bash
     python main.py
     ```
 
-4.  **Build .exe (PyInstaller):**
+5.  **Build .exe (PyInstaller):**
     ```bash
     pyinstaller --noconsole --onefile --icon=assets/icon.ico --name=PlexRPC --add-data "assets;assets" main.py
     ```

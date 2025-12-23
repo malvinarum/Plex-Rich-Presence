@@ -35,7 +35,7 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
 4.  **Done!** The app will minimize to your system tray and start updating your Discord status.
 
 ## App Screenshots
-<img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/1bda1a28-08d3-45ee-88ba-da44da98875b" />
+<img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/e0836bc7-03d5-4d0e-b181-086ab2312d5a" />
 <img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/04ededdd-e8f0-43b5-b3a2-d040c6a3aea3" />
 <img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/fa99768e-8904-41f2-92b4-6384a8d8bc2c" />
 <img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/bda61806-d74a-4f27-aab7-f4fe06638672" />

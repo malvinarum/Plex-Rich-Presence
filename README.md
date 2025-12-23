@@ -34,9 +34,18 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
     * **Libraries:** (Optional) Check any libraries that contain Audiobooks for enhanced metadata.
 4.  **Done!** The app will minimize to your system tray and start updating your Discord status.
 
-## Screenshots
-<img width="452" alt="plex_rpc_wizard" src="https://github.com/user-attachments/assets/66b6260a-c120-40a2-a051-c2985e1b929b" />
-<img width="452" alt="plex_rpc_music" src="https://github.com/user-attachments/assets/0873b9ee-a67d-433c-86b3-8b72ee5d2a6f" />
+## App Screenshots
+<img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/1bda1a28-08d3-45ee-88ba-da44da98875b" />
+<img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/04ededdd-e8f0-43b5-b3a2-d040c6a3aea3" />
+<img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/fa99768e-8904-41f2-92b4-6384a8d8bc2c" />
+<img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/bda61806-d74a-4f27-aab7-f4fe06638672" />
+
+## Rich Presence Screenshots
+<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/6b743d99-dc94-44ee-996b-0d592bcfc2d5" />
+<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/ee653503-4619-4a64-a653-f3fd49bb26f2" />
+<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/ab754a74-22ff-4b20-b28d-1972b1bb3bb8" />
+<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/94cabda1-08c0-40f7-8281-afab8e387b60" />
+
 
 ## 🛠️ Troubleshooting
 

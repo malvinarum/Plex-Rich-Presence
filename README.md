@@ -88,3 +88,12 @@ https://github.com/malvinarum/plexrpc-api
 ## 📜 License
 
 This project is open-source. Feel free to fork, modify, and distribute.
+
+## Disclaimer
+
+**PlexRPC** is a community-developed, open-source project. It is **not** affiliated, associated, authorized, endorsed by, or in any way officially connected with **Plex, Inc.**, **Discord Inc.**, or any of their subsidiaries or affiliates.
+
+* The official Plex website can be found at [https://www.plex.tv](https://www.plex.tv).
+* The official Discord website can be found at [https://discord.com](https://discord.com).
+
+The names "Plex", "Discord", as well as related names, marks, emblems, and images are registered trademarks of their respective owners. This application is intended for personal, non-commercial use only.

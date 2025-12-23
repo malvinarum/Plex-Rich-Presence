@@ -73,9 +73,10 @@ If you want to run from source or build it yourself:
     ```
 
 3.  **Setup backend (If you want to use your own api):**
-* **[PlexRPC API](https://github.com/malvinarum/plexrpc-api)**
-* or
-* **[PlexRPC API (Cloudflare Worker)](https://github.com/malvinarum/PlexRPC-API-Cloudflare-Worker)** if you wanna set it up serverless.
+    * **[PlexRPC API](https://github.com/malvinarum/plexrpc-api)** (Node.js)
+    * **[PlexRPC API - Serverless](https://github.com/malvinarum/PlexRPC-API-Cloudflare-Worker)** (Cloudflare Worker - Recommended)
+    
+    *After deploying your backend, update the `API_URL` variable in `main.py` to match your new endpoint.*
 
 5.  **Run locally:**
     ```bash

@@ -9,9 +9,6 @@
 <a href="https://github.com/sponsors/malvinarum">
   <img src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=github&logoColor=white" alt="Sponsor on GitHub" />
 </a>
-<a href="https://www.patreon.com/malvinarum">
-  <img src="https://img.shields.io/badge/Patreon-Support-f96854?style=for-the-badge&logo=patreon&logoColor=white" alt="Support on Patreon" />
-</a>
 <a href="https://www.buymeacoffee.com/malvinarum">
   <img src="https://img.shields.io/badge/Buy_Me_A_Coffee-Donate-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee" />
 </a>

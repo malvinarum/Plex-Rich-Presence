@@ -19,9 +19,10 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 # --- CONFIGURATION ---
+# IMPORTANT: No trailing slash on the URL
 API_URL = "https://plexrpc-api.malvinarum.com"
 APP_NAME = "PlexRPC"
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 
 
 # --- ASSET RESOURCE HELPER ---
@@ -52,17 +53,6 @@ if not os.path.exists(CONFIG_DIR): os.makedirs(CONFIG_DIR)
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-# --- HELPER: FETCH DISCORD ID ---
-def fetch_discord_id():
-    try:
-        res = requests.get(f"{API_URL}/api/config/discord-id", timeout=5)
-        res.raise_for_status()
-        return res.json().get('client_id')
-    except Exception as e:
-        logging.error(f"Failed to fetch Discord Client ID: {e}")
-        return None
-
-
 # --- DARK MODE TITLE BAR ---
 def dark_title_bar(window):
     window.update()
@@ -72,6 +62,26 @@ def dark_title_bar(window):
     hwnd = get_parent(window.winfo_id())
     value = ctypes.c_int(2)
     set_window_attribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(value), ctypes.sizeof(value))
+
+
+# --- HELPER: FETCH SERVER CONFIG ---
+# Fetches Discord ID and checks for updates
+def fetch_config(client_uuid, app_version):
+    try:
+        headers = {
+            "X-Client-UUID": client_uuid,
+            "X-App-Version": app_version
+        }
+        res = requests.get(f"{API_URL}/api/config/discord-id", headers=headers, timeout=5)
+        res.raise_for_status()
+        data = res.json()
+        return {
+            "client_id": data.get('client_id'),
+            "latest_version": data.get('latest_version', '0.0.0')
+        }
+    except Exception as e:
+        logging.error(f"Failed to fetch config: {e}")
+        return None
 
 
 # --- SETUP WIZARD (GUI) ---
@@ -104,12 +114,12 @@ class SetupWizard:
                         arrowcolor="white")
         style.map("TCombobox", fieldbackground=[('readonly', '#333333')])
 
-        # Window Icon
         if os.path.exists(ICON_ICO):
             self.root.iconbitmap(ICON_ICO)
 
         self.account = None
         self.servers = []
+        # Generate Client UUID for Setup
         self.client_identifier = str(uuid.uuid4())
 
         self.build_ui()
@@ -118,19 +128,16 @@ class SetupWizard:
         self.main_frame = ttk.Frame(self.root, padding=20)
         self.main_frame.pack(fill="both", expand=True)
 
-        # --- FIX: LOGO DISPLAY (Added back) ---
         if os.path.exists(ICON_PNG):
             try:
                 img = Image.open(ICON_PNG)
                 img = img.resize((100, 100), Image.Resampling.LANCZOS)
-                self.logo_img = ImageTk.PhotoImage(img)  # Keep reference
+                self.logo_img = ImageTk.PhotoImage(img)
                 tk.Label(self.main_frame, image=self.logo_img, bg=self.bg_color, borderwidth=0).pack(pady=(0, 10))
             except Exception as e:
                 logging.error(f"Failed to load logo: {e}")
 
-        # Header
         ttk.Label(self.main_frame, text=f"Welcome to {APP_NAME}", style="Header.TLabel").pack(pady=(0, 20))
-
         self.status_lbl = ttk.Label(self.main_frame, text="Please sign in to link your Plex account.", wraplength=450)
         self.status_lbl.pack(pady=10)
 
@@ -149,16 +156,13 @@ class SetupWizard:
                 headers = {'X-Plex-Product': APP_NAME, 'X-Plex-Client-Identifier': self.client_identifier,
                            'Accept': 'application/json'}
 
-                # 1. Request PIN
                 res = requests.post("https://plex.tv/api/v2/pins?strong=true", headers=headers)
                 if res.status_code != 201: raise Exception("Could not generate PIN")
                 pin_data = res.json()
 
-                # 2. Open Auth URL
                 webbrowser.open(
                     f"https://app.plex.tv/auth#?clientID={self.client_identifier}&code={pin_data['code']}&context%5Bdevice%5D%5Bproduct%5D={APP_NAME}")
 
-                # 3. Poll
                 auth_token = None
                 for _ in range(60):
                     time.sleep(2)
@@ -256,8 +260,14 @@ class SetupWizard:
 
     def save_config(self):
         audiobook_libs = [name for name, var in self.lib_vars.items() if var.get()]
-        config_data = {"auth_token": self.account.authenticationToken, "server_name": self.selected_server.name,
-                       "user_filter": self.selected_user, "audiobook_libraries": audiobook_libs}
+        config_data = {
+            "auth_token": self.account.authenticationToken,
+            "server_name": self.selected_server.name,
+            "user_filter": self.selected_user,
+            "audiobook_libraries": audiobook_libs,
+            "client_uuid": self.client_identifier  # Saved for API headers
+        }
+
         with open(CONFIG_FILE, 'w') as f: json.dump(config_data, f, indent=4)
         messagebox.showinfo("Success", "Setup Complete! PlexRPC will now restart.")
         self.root.destroy()
@@ -274,12 +284,23 @@ class PlexPresence:
         self.plex = None
         self.config = self.load_config()
         self.discord_client_id = None
+        self.latest_server_version = None  # Store version for Tray Icon
+        self.cache = {}
 
     def load_config(self):
         if not os.path.exists(CONFIG_FILE): return None
         try:
             with open(CONFIG_FILE, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+
+            # Auto-upgrade v2.0 configs
+            if 'client_uuid' not in data:
+                logging.info("Upgrading config to v2.1 (Adding UUID)")
+                data['client_uuid'] = str(uuid.uuid4())
+                with open(CONFIG_FILE, 'w') as f:
+                    json.dump(data, f, indent=4)
+
+            return data
         except:
             return None
 
@@ -296,8 +317,18 @@ class PlexPresence:
 
     def connect_discord(self):
         try:
-            if not self.discord_client_id: self.discord_client_id = fetch_discord_id()
+            # Fetch config from worker if not already done
+            if not self.discord_client_id:
+                config_data = fetch_config(
+                    self.config.get('client_uuid', 'unknown'),
+                    VERSION
+                )
+                if config_data:
+                    self.discord_client_id = config_data['client_id']
+                    self.latest_server_version = config_data['latest_version']
+
             if not self.discord_client_id: return
+
             self.rpc = Presence(self.discord_client_id)
             self.rpc.connect()
             logging.info("Connected to Discord RPC")
@@ -342,23 +373,51 @@ class PlexPresence:
                     type_ = 'music'
 
             if q:
-                try:
-                    res = requests.get(f"{API_URL}/api/metadata/{type_}", params={'q': q}, timeout=3).json()
-                    if res.get('found'):
-                        status['large_image'] = res['image']
-                        status['large_text'] = res.get('title', q)
-                        if res.get('url'):
-                            btn_label = "View Details"
-                            if type_ == 'music':
-                                btn_label = "Listen on Spotify"
-                            elif type_ == 'book':
-                                btn_label = "View Book"
-                            elif type_ in ['movie', 'tv']:
-                                btn_label = "View on TMDB"
-                            status['buttons'].insert(0, {"label": btn_label, "url": res['url']})
-                            status['buttons'] = status['buttons'][:2]
-                except:
-                    pass
+                cache_key = (type_, q)
+
+                # Check Cache
+                if cache_key in self.cache:
+                    res = self.cache[cache_key]
+                else:
+                    # Fetch Metadata with Secure Headers
+                    try:
+                        headers = {
+                            "X-Client-UUID": self.config.get('client_uuid', 'unknown'),
+                            "X-App-Version": VERSION
+                        }
+                        res = requests.get(f"{API_URL}/api/metadata/{type_}", params={'q': q}, headers=headers,
+                                           timeout=3).json()
+
+                        if res.get('found'):
+                            self.cache[cache_key] = res
+                    except:
+                        res = {}
+
+                # Apply Metadata
+                if res.get('found'):
+                    status['large_image'] = res['image']
+                    status['large_text'] = res.get('title', q)
+
+                    # --- REMOTE TEXT OVERRIDE (For Ban/Update Messages) ---
+                    # If the worker says "Update Required", we overwrite the local Plex title.
+                    if res.get('line1'):
+                        status['details'] = res['line1']
+                    if res.get('line2'):
+                        status['state'] = res['line2']
+
+                    if res.get('url'):
+                        btn_label = "View Details"
+                        if type_ == 'music':
+                            btn_label = "Listen on Spotify"
+                        elif type_ == 'book':
+                            btn_label = "View Book"
+                        elif type_ in ['movie', 'tv']:
+                            btn_label = "View on TMDB"
+
+                        # Add button at the top
+                        status['buttons'].insert(0, {"label": btn_label, "url": res['url']})
+                        # Ensure max 2 buttons
+                        status['buttons'] = status['buttons'][:2]
 
             return status
         except Exception as e:
@@ -377,7 +436,8 @@ class PlexPresence:
             if activity:
                 try:
                     self.rpc.update(**activity)
-                except:
+                except Exception as e:
+                    logging.error(f"RPC Update Failed: {e}")
                     self.rpc = None
             else:
                 try:
@@ -413,16 +473,11 @@ def create_tray(app):
 
             try:
                 if getattr(sys, 'frozen', False):
-                    # --- THE FIX IS HERE ---
-                    # Create a copy of the current environment
+                    # Clean Restart for PyInstaller OneFile
                     env = os.environ.copy()
-                    # Remove the PyInstaller path so the new process unpacks a fresh copy
                     env.pop('_MEIPASS2', None)
-
-                    # Pass the clean env to the new process
                     subprocess.Popen([sys.executable] + sys.argv[1:], env=env)
                 else:
-                    # For Python script (development mode)
                     subprocess.Popen([sys.executable, sys.argv[0]] + sys.argv[1:])
             except Exception as e:
                 logging.error(f"Failed to restart: {e}")
@@ -433,11 +488,30 @@ def create_tray(app):
             app.stop()
             os._exit(0)
 
-    menu = pystray.Menu(
-        pystray.MenuItem(f"{APP_NAME} v{VERSION}", None, enabled=False),
-        pystray.MenuItem("Reset Config", on_reset),
-        pystray.MenuItem("Quit", on_quit)
-    )
+    def on_update(icon, item):
+        webbrowser.open("https://github.com/malvinarum/Plex-Rich-Presence/releases")
+
+    # Helper to check version (Simple comparison)
+    def is_update_available(local, remote):
+        try:
+            if not remote: return False
+            l_parts = [int(x) for x in local.split('.')]
+            r_parts = [int(x) for x in remote.split('.')]
+            return r_parts > l_parts
+        except:
+            return False
+
+    menu_items = []
+    menu_items.append(pystray.MenuItem(f"{APP_NAME} v{VERSION}", None, enabled=False))
+
+    # Show update button if version mismatch detected
+    if hasattr(app, 'latest_server_version') and is_update_available(VERSION, app.latest_server_version):
+        menu_items.append(pystray.MenuItem("⚠️ Update Available!", on_update))
+
+    menu_items.append(pystray.MenuItem("Reset Config", on_reset))
+    menu_items.append(pystray.MenuItem("Quit", on_quit))
+
+    menu = pystray.Menu(*menu_items)
 
     icon = pystray.Icon(APP_NAME, image, f"{APP_NAME} (Running)", menu)
     icon.run()
@@ -451,6 +525,15 @@ if __name__ == "__main__":
         if not os.path.exists(CONFIG_FILE): sys.exit()
 
     app = PlexPresence()
+
+    # Pre-fetch config ONCE at startup to ensure Tray has version info immediately
+    # This prevents the tray from loading without the "Update" button if the RPC connect is slow
+    if not app.discord_client_id:
+        cfg = fetch_config(app.config.get('client_uuid'), VERSION)
+        if cfg:
+            app.discord_client_id = cfg['client_id']
+            app.latest_server_version = cfg['latest_version']
+
     t = threading.Thread(target=app.update_loop)
     t.daemon = True
     t.start()

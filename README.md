@@ -2,18 +2,31 @@
 
 <img src="https://raw.githubusercontent.com/malvinarum/Plex-Rich-Presence/refs/heads/main/assets/icon.png" width="300"> 
 
-![Version](https://img.shields.io/badge/version-v2.0-blue?style=for-the-badge&color=e5a00d)
+![Version](https://img.shields.io/badge/version-v2.1-blue?style=for-the-badge&color=e5a00d)
 ![Downloads](https://img.shields.io/github/downloads/malvinarum/Plex-Rich-Presence/total?style=for-the-badge&color=2d2d2d)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
+
+<a href="https://github.com/sponsors/malvinarum">
+  <img src="https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=github&logoColor=white" alt="Sponsor on GitHub" />
+</a>
+<a href="https://www.patreon.com/malvinarum">
+  <img src="https://img.shields.io/badge/Patreon-Support-f96854?style=for-the-badge&logo=patreon&logoColor=white" alt="Support on Patreon" />
+</a>
+<a href="https://www.buymeacoffee.com/malvinarum">
+  <img src="https://img.shields.io/badge/Buy_Me_A_Coffee-Donate-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee" />
+</a>
+
+---
 
 **PlexRPC** is a modern, lightweight, and user-friendly application that syncs your Plex media status to your Discord profile. 
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from secure login to custom library settings.
 
-## 🌟 New in v2.0
+## 🌟 New in v2.1
 
-* **🎵 Music Support:** Now fully supports Plex Music! It automatically identifies tracks and fetches high-res album art and "Listen on Spotify" buttons via the Spotify API.
-* **Easy Config Reset:** No more digging trough %appdata% folder to reset your config. Added easy "Reset Config" option to the system tray.
+* **🔔 Automatic Update Checks:** The app now smartly checks for updates on startup. If a new version is available, a convenient "Update Available" button will appear in your System Tray menu.
+* **🛡️ Enhanced Security:** All API communication is now verified with secure client headers, ensuring a stable and safe connection to the metadata backend.
+* **🔧 Core Improvements:** Includes the optimizations from v2.0 (Music Support, Config Reset) with added stability fixes.
 
 ## ✨ Key Features
 
@@ -46,7 +59,6 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
 <img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/ab754a74-22ff-4b20-b28d-1972b1bb3bb8" />
 <img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/94cabda1-08c0-40f7-8281-afab8e387b60" />
 
-
 ## 🛠️ Troubleshooting
 
 **"I want to reset my settings"**
@@ -72,7 +84,7 @@ If you want to run from source or build it yourself:
     pip install -r requirements.txt
     ```
 
-3.  **Setup backend (If you want to use your own api):**
+3.  **Setup backend (If you want to use your own API):**
     * **[PlexRPC API](https://github.com/malvinarum/plexrpc-api)** (Node.js)
     * **[PlexRPC API - Serverless](https://github.com/malvinarum/PlexRPC-API-Cloudflare-Worker)** (Cloudflare Worker - Recommended)
     

@@ -88,12 +88,16 @@ If you want to run from source or build it yourself:
     pip install -r requirements.txt
     ```
 
-3.  **Run locally:**
+3.  **Setup backend (If you want to use your own API):**
+    * **[PlexRPC API](https://github.com/malvinarum/plexrpc-api)** (Node.js)
+    * **[PlexRPC API - Serverless](https://github.com/malvinarum/PlexRPC-API-Cloudflare-Worker)** (Cloudflare Worker - Recommended)
+
+4.  **Run locally:**
     ```bash
     python main.py
     ```
 
-4.  **Build .exe (PyInstaller):**
+5.  **Build .exe (PyInstaller):**
     If you want to build the standalone executable, use the provided spec file:
     ```bash
     pyinstaller PlexRPC.spec

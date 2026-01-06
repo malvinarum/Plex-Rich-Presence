@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/malvinarum/Plex-Rich-Presence/refs/heads/main/assets/icon.png" width="300"> 
 
-![Version](https://img.shields.io/badge/version-v2.1-blue?style=for-the-badge&color=e5a00d)
+![Version](https://img.shields.io/badge/version-v2.2-blue?style=for-the-badge&color=e5a00d)
 ![Downloads](https://img.shields.io/github/downloads/malvinarum/Plex-Rich-Presence/total?style=for-the-badge&color=2d2d2d)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
 
@@ -19,11 +19,12 @@
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from secure login to custom library settings.
 
-## 🌟 New in v2.1
+## 🌟 New in v2.2
 
-* **🔔 Automatic Update Checks:** The app now smartly checks for updates on startup. If a new version is available, a convenient "Update Available" button will appear in your System Tray menu.
-* **🛡️ Enhanced Security:** All API communication is now verified with secure client headers, ensuring a stable and safe connection to the metadata backend.
-* **🔧 Core Improvements:** Includes the optimizations from v2.0 (Music Support, Config Reset) with added stability fixes.
+* **🚀 Run on Startup:** A true "set and forget" experience. You can now toggle **Run on Startup** directly from the System Tray menu.
+* **⏯️ Smart Pause Detection:** The app now detects when you pause your media. It updates your status text to "(Paused)" and hides the progress bar so your timer doesn't drift.
+* **👀 Dynamic Activity Status:** Discord now correctly displays **"Watching Plex"** for movies/series and **"Listening to Plex"** for music/audiobooks.
+* **📊 Universal Progress Bar:** Added beautiful progress bars for Video content, Music tracks and Audiobooks.
 
 ## ✨ Key Features
 
@@ -31,7 +32,7 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
 * **☁️ Cloud Metadata API:** Powered by a custom backend to fetch high-quality covers from **TMDB** (Movies/TV), **Google Books** (Audiobooks), and **Spotify** (Music).
 * **🎧 Audiobook Recognition:** Smartly detects audiobook libraries to display book covers and author details instead of generic placeholders.
 * **👥 Multi-User Support:** Works perfectly with Plex Home / Managed Users. You pick exactly which profile to track (great for shared family servers).
-* **🚀 "Pro" Architecture:** Runs silently in the System Tray. Configuration is safely stored in your `%APPDATA%` folder.
+* **🛡️ Silent & Secure:** Runs silently in the System Tray with secure API headers.
 
 ## 📥 Installation
 
@@ -42,7 +43,8 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
     * **Server:** Choose which Plex Media Server to track.
     * **User:** Select your specific user profile.
     * **Libraries:** (Optional) Check any libraries that contain Audiobooks for enhanced metadata.
-4.  **Done!** The app will minimize to your system tray and start updating your Discord status.
+4.  **Done!** The app will minimize to your system tray. 
+5.  *(Optional)* Right-click the tray icon and check **"Run on Startup"** to have it launch automatically with Windows.
 
 ## App Screenshots
 <img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/e0836bc7-03d5-4d0e-b181-086ab2312d5a" />
@@ -86,21 +88,17 @@ If you want to run from source or build it yourself:
     pip install -r requirements.txt
     ```
 
-3.  **Setup backend (If you want to use your own API):**
-    * **[PlexRPC API](https://github.com/malvinarum/plexrpc-api)** (Node.js)
-    * **[PlexRPC API - Serverless](https://github.com/malvinarum/PlexRPC-API-Cloudflare-Worker)** (Cloudflare Worker - Recommended)
-    
-    *After deploying your backend, update the `API_URL` variable in `main.py` to match your new endpoint.*
-
-5.  **Run locally:**
+3.  **Run locally:**
     ```bash
     python main.py
     ```
 
-6.  **Build .exe (PyInstaller):**
+4.  **Build .exe (PyInstaller):**
+    If you want to build the standalone executable, use the provided spec file:
     ```bash
-    pyinstaller --noconsole --onefile --icon=assets/icon.ico --name=PlexRPC --add-data "assets;assets" main.py
+    pyinstaller PlexRPC.spec
     ```
+    *(Or manually: `pyinstaller --noconsole --onefile --icon=assets/icon.ico --name=PlexRPC --add-data "assets;assets" main.py`)*
 
 ## 📜 License
 

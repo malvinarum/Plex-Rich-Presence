@@ -51,10 +51,15 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
 <img width="502" height="582" alt="image" src="https://github.com/user-attachments/assets/bda61806-d74a-4f27-aab7-f4fe06638672" />
 
 ## Rich Presence Screenshots
-<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/6b743d99-dc94-44ee-996b-0d592bcfc2d5" />
-<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/ee653503-4619-4a64-a653-f3fd49bb26f2" />
-<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/ab754a74-22ff-4b20-b28d-1972b1bb3bb8" />
-<img width="275" height="200" alt="image" src="https://github.com/user-attachments/assets/94cabda1-08c0-40f7-8281-afab8e387b60" />
+**TV Series**\
+<img width="315" height="207" alt="image" src="https://github.com/user-attachments/assets/73ec1730-3e4c-4166-b4b1-1ad497e4b9ac" />\
+**Movies**\
+<img width="315" height="207" alt="image" src="https://github.com/user-attachments/assets/b15c1efa-8a65-486f-bb4f-300c7b142585" />\
+**Music**\
+<img width="315" height="207" alt="image" src="https://github.com/user-attachments/assets/09150d49-e6c6-4a25-bfe5-8b39e6283c2c" />\
+**Audiobook**\
+<img width="315" height="207" alt="image" src="https://github.com/user-attachments/assets/29122f9c-fd88-41ff-8a4e-9c435d1c2994" />
+
 
 ## 🛠️ Troubleshooting
 

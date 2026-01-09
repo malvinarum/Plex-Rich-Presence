@@ -79,7 +79,7 @@ If you want to run from source or build it yourself:
 
 1.  **Clone the repo:**
     ```bash
-    git clone [https://github.com/malvinarum/Plex-Rich-Presence.git](https://github.com/malvinarum/Plex-Rich-Presence.git)
+    git clone https://github.com/malvinarum/Plex-Rich-Presence.git
     cd Plex-Rich-Presence
     ```
 

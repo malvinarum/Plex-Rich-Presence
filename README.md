@@ -19,12 +19,21 @@
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from secure login to custom library settings.
 
-## 🌟 New in v2.2
+## ✨ New in v2.3+
 
-* **🚀 Run on Startup:** A true "set and forget" experience. You can now toggle **Run on Startup** directly from the System Tray menu.
-* **⏯️ Smart Pause Detection:** The app now detects when you pause your media. It updates your status text to "(Paused)" and hides the progress bar so your timer doesn't drift.
-* **👀 Dynamic Activity Status:** Discord now correctly displays **"Watching Plex"** for movies/series and **"Listening to Plex"** for music/audiobooks.
-* **📊 Universal Progress Bar:** Added beautiful progress bars for Video content, Music tracks and Audiobooks.
+The latest update brings major stability improvements and user-requested features:
+
+* **👻 Privacy Mode:** Temporarily pause your Rich Presence directly from the system tray without closing the app. Perfect for when you want some privacy.
+* **🟢 Dynamic Status Icons:** The system tray icon now changes color to reflect your status instantly:
+  * 🟢 **Green:** Playing
+  * 🔵 **Blue:** Paused
+  * ⚪ **Grey:** Privacy Mode (Paused Presence)
+  * 🟠 **Orange:** Idle (No active session)
+  * 🔴 **Red:** Connection Error
+* **🛠️ Robust Reset:** The "Reset Config" option has been completely rewritten to prevent freezing.
+* **🧹 Auto-Maintenance & Better logging:** Auto-Maintenance & Better Logs: On launch, the app automatically cleans up bloated log files ('app.log') to save space. I've also refined the logging system to cut out the noise while preserving critical debug info.
+* **🆔 Identity Fix:** Improved user matching ensures the app grabs the correct session even if your "Friendly Name" differs from your username.
+* **🎵 Enhanced Metadata:** Music now correctly displays "by Artist" on the second line and the **Album Name** in the hover text and 3rd line.
 
 ## ✨ Key Features
 
@@ -33,6 +42,11 @@ Unlike other scripts that require editing complex JSON config files, PlexRPC fea
 * **🎧 Audiobook Recognition:** Smartly detects audiobook libraries to display book covers and author details instead of generic placeholders.
 * **👥 Multi-User Support:** Works perfectly with Plex Home / Managed Users. You pick exactly which profile to track (great for shared family servers).
 * **🛡️ Silent & Secure:** Runs silently in the System Tray with secure API headers.
+* **🚀 Run on Startup:** A true "set and forget" experience. You can now toggle **Run on Startup** directly from the System Tray menu.
+* **⏯️ Smart Pause Detection:** The app now detects when you pause your media. It updates your status text to "(Paused)" and hides the progress bar so your timer doesn't drift.
+* **👀 Dynamic Activity Status:** Discord now correctly displays **"Watching Plex"** for movies/series and **"Listening to Plex"** for music/audiobooks.
+* **📊 Universal Progress Bar:** Added beautiful progress bars for Video content, Music tracks and Audiobooks.
+
 
 ## 📥 Installation
 

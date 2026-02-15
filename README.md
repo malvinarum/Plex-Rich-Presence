@@ -19,7 +19,7 @@
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from secure login to custom library settings.
 
-## ✨ New in v2.3+
+## ✨ New in v2.3
 
 The latest update brings major stability improvements and user-requested features:
 

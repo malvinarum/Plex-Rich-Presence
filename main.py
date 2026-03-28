@@ -164,8 +164,12 @@ class SetupWizard:
             self.logo_img = ImageTk.PhotoImage(img)
             tk.Label(self.main_frame, image=self.logo_img, bg=self.bg_color).pack(pady=(0, 10))
         ttk.Label(self.main_frame, text=f"Welcome to {APP_NAME}", style="Header.TLabel").pack(pady=(0, 20))
-        self.status_lbl = ttk.Label(self.main_frame, text="Please sign in to link your Plex account.", wraplength=450)
+
+        # Step 1: Initial Login Text
+        self.status_lbl = ttk.Label(self.main_frame, text="Please sign in to your Plex account with the button below.",
+                                    wraplength=450)
         self.status_lbl.pack(pady=10)
+
         self.content_frame = ttk.Frame(self.main_frame)
         self.content_frame.pack(fill="both", expand=True)
         self.login_btn = ttk.Button(self.content_frame, text="Sign in with Plex", command=self.start_oauth)
@@ -207,6 +211,9 @@ class SetupWizard:
         threading.Thread(target=fetch_servers, daemon=True).start()
 
     def _render_server_list(self):
+        # Step 2: Server Selection Text
+        self.status_lbl.config(text="Please select server")
+
         self.server_var = tk.StringVar()
         self.server_combo = ttk.Combobox(self.content_frame, textvariable=self.server_var, state="readonly")
         self.server_combo['values'] = [s.name for s in self.servers]
@@ -230,9 +237,11 @@ class SetupWizard:
         threading.Thread(target=fetch_users, daemon=True).start()
 
     def _render_user_list(self):
+        # Step 3: User Selection Text
+        self.status_lbl.config(text="Please select user")
+
         self.user_var = tk.StringVar()
         self.user_combo = ttk.Combobox(self.content_frame, textvariable=self.user_var, state="readonly")
-        # Step 2: The Identity Fix (Literal Username)
         self.user_combo['values'] = [u.username for u in self.users]
         self.user_combo.current(0)
         self.user_combo.pack(fill="x", pady=5)
@@ -241,6 +250,10 @@ class SetupWizard:
     def select_libraries(self):
         self.selected_user = self.user_combo.get()
         for w in self.content_frame.winfo_children(): w.destroy()
+
+        # Step 4: Library Selection Text
+        self.status_lbl.config(text="Please select audiobook libraries (Optional)")
+
         sections = self.plex_instance.library.sections()
         self.lib_vars = {}
         for section in sections:
@@ -355,7 +368,7 @@ class PlexPresence:
             elif is_paused:
                 status['state'], status['small_text'] = "Paused", "Paused"
 
-            q, type_ = current.title, 'movie'
+            q, type_, album_name = current.title, 'movie', None
 
             if current.type == 'episode':
                 q, type_ = current.grandparentTitle, 'tv'
@@ -367,6 +380,7 @@ class PlexPresence:
                 current_activity_type = ActivityType.LISTENING
                 artist = current.originalTitle or current.grandparentTitle or "Unknown Artist"
                 album = getattr(current, 'parentTitle', '')
+                album_name = album  # Save this to pass to the API separately
                 status['state'] = f"by {artist}" + (" (Paused)" if is_paused else "")
                 status['large_text'] = album if album else artist
 
@@ -374,16 +388,23 @@ class PlexPresence:
                                                                   []) or 'book' in current.librarySectionTitle.lower():
                     q, type_, status['large_image'] = f"{current.title} {artist}", 'book', "book_icon"
                 else:
-                    q, type_, status['large_image'] = f"{artist} {current.title}", 'music', "plex_logo"
+                    # Only search Artist + Title to prevent confusing iTunes
+                    q, type_, status['large_image'] = f"{artist} {current.title}".strip(), 'music', "plex_logo"
 
             status['activity_type'] = current_activity_type
 
             if q:
-                cache_key = (type_, q)
+                # Add album to the cache key so different album versions of the same song don't collide
+                cache_key = (type_, q, album_name if album_name else '')
                 res = self.cache.get(cache_key)
+
                 if not res:
                     try:
-                        res = requests.get(f"{API_URL}/api/metadata/{type_}", params={'q': q},
+                        req_params = {'q': q}
+                        if type_ == 'music' and album_name:
+                            req_params['album'] = album_name
+
+                        res = requests.get(f"{API_URL}/api/metadata/{type_}", params=req_params,
                                            headers={"X-Client-UUID": self.config.get('client_uuid', 'unknown'),
                                                     "X-App-Version": VERSION}, timeout=3).json()
                         if res.get('found'): self.cache[cache_key] = res
@@ -393,11 +414,12 @@ class PlexPresence:
                 if res.get('found'):
                     status['large_image'] = res['image']
                     if not status.get('large_text') or status['large_text'] == artist:
-                        status['large_text'] = res.get('title', q)
+                        # Fallback to the album iTunes found if Plex was missing it
+                        status['large_text'] = res.get('album', res.get('title', q))
                     if res.get('line1'): status['details'] = res['line1']
                     if res.get('line2') and type_ != 'music': status['state'] = res['line2']
                     if res.get('url'):
-                        btn_label = "Listen on Spotify" if type_ == 'music' else "View Book" if type_ == 'book' else "View on TMDB"
+                        btn_label = "View on iTunes" if type_ == 'music' else "View Book" if type_ == 'book' else "View on TMDB"
                         status['buttons'].insert(0, {"label": btn_label, "url": res['url']})
                         status['buttons'] = status['buttons'][:2]
 
@@ -488,7 +510,12 @@ class PlexPresence:
 
     def stop(self):
         self.running = False
-        if self.rpc: self.rpc.close()
+        if self.rpc:
+            try:
+                self.rpc.clear()  # Force wipe the status immediately
+            except:
+                pass
+            self.rpc.close()  # Then sever the connection
 
 
 def create_tray(app):
@@ -497,31 +524,49 @@ def create_tray(app):
     app.tray_icon = icon
 
     def on_quit(icon, item):
-        icon.stop(); app.stop(); os._exit(0)
+        icon.stop();
+        app.stop();
+        os._exit(0)
 
     # --- PAUSE TOGGLE ---
     def on_toggle_pause(icon, item):
         app.paused = not app.paused
-        # Force immediate visual update in the next loop cycle
+        # Instantly clear presence the moment the button is clicked to prevent ghosting
+        if app.paused and app.rpc:
+            try:
+                app.rpc.clear()
+            except Exception as e:
+                logging.error(f"Failed to clear RPC on pause: {e}")
 
     def on_reset(icon, item):
         def reset_thread():
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes("-topmost", True)
-            try:
-                if messagebox.askyesno("Reset Config", "This will delete your login and restart.\nContinue?",
-                                       parent=root):
-                    icon.stop()
-                    app.stop()
-                    if os.path.exists(CONFIG_FILE):
-                        try:
-                            os.remove(CONFIG_FILE)
-                        except:
-                            pass
-                    os.execl(sys.executable, sys.executable, *sys.argv)
-            finally:
-                root.destroy()
+            # Tkinter in a pystray background thread is a death sentence.
+            # Using thread-safe native Windows API instead.
+            MB_YESNO = 0x04
+            MB_ICONWARNING = 0x30
+            IDYES = 6
+
+            result = ctypes.windll.user32.MessageBoxW(
+                0,
+                "This will delete your login configuration and exit the app. You will need to start it again manually.\n\nContinue?",
+                "Reset Config",
+                MB_YESNO | MB_ICONWARNING
+            )
+
+            if result == IDYES:
+                logging.info("Resetting config...")
+                if os.path.exists(CONFIG_FILE):
+                    try:
+                        os.remove(CONFIG_FILE)
+                    except Exception as e:
+                        logging.error(f"Failed to delete config: {e}")
+
+                # Stop the app loops
+                app.stop()
+                icon.stop()
+
+                # Force kill the process cleanly. os.execl is buggy on Windows.
+                os._exit(0)
 
         threading.Thread(target=reset_thread, daemon=True).start()
 

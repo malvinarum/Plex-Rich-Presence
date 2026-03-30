@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/malvinarum/Plex-Rich-Presence/refs/heads/main/assets/icon.png" width="300"> 
 
-![Version](https://img.shields.io/badge/version-v2.2-blue?style=for-the-badge&color=e5a00d)
+![Version](https://img.shields.io/badge/version-v2.3-blue?style=for-the-badge&color=e5a00d)
 ![Downloads](https://img.shields.io/github/downloads/malvinarum/Plex-Rich-Presence/total?style=for-the-badge&color=2d2d2d)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
 

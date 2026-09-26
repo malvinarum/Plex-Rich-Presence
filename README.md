@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/malvinarum/Plex-Rich-Presence/refs/heads/main/assets/icon.png" width="300"> 
 
-![Version](https://img.shields.io/badge/version-v2.3-blue?style=for-the-badge&color=e5a00d)
+![Version](https://img.shields.io/badge/version-v2.4-blue?style=for-the-badge&color=e5a00d)
 ![Downloads](https://img.shields.io/github/downloads/malvinarum/Plex-Rich-Presence/total?style=for-the-badge&color=2d2d2d)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=for-the-badge)
 
@@ -19,33 +19,41 @@
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from secure login to custom library settings.
 
-## ✨ New in v2.3
+## ✨ New in v2.4
 
-The latest update brings major stability improvements and user-requested features:
+> ⚠️ **Updating from v2.3?** Quit the old version first (right-click the tray icon → **Quit**). Your saved login is converted to encrypted storage on first launch, so downgrading to v2.3 afterwards requires **Reset Config** and signing in again.
 
-* **👻 Privacy Mode:** Temporarily pause your Rich Presence directly from the system tray without closing the app. Perfect for when you want some privacy.
-* **🟢 Dynamic Status Icons:** The system tray icon now changes color to reflect your status instantly:
-  * 🟢 **Green:** Playing
-  * 🔵 **Blue:** Paused
-  * ⚪ **Grey:** Privacy Mode (Paused Presence)
-  * 🟠 **Orange:** Idle (No active session)
-  * 🔴 **Red:** Connection Error
-* **🛠️ Robust Reset:** The "Reset Config" option has been completely rewritten to prevent freezing.
-* **🧹 Auto-Maintenance & Better logging:** Auto-Maintenance & Better Logs: On launch, the app automatically cleans up bloated log files ('app.log') to save space. I've also refined the logging system to cut out the noise while preserving critical debug info.
-* **🆔 Identity Fix:** Improved user matching ensures the app grabs the correct session even if your "Friendly Name" differs from your username.
-* **🎵 Enhanced Metadata:** Music now correctly displays "by Artist" on the second line and the **Album Name** in the hover text and 3rd line.
+* **🔐 Encrypted Login:** Your Plex token is now protected with Windows DPAPI. Only your Windows user on your PC can read it, so a copied `config.json` no longer exposes your account. Existing configs are migrated automatically.
+* **⚡ Instant Connect:** PlexRPC remembers the server address that worked last time and connects in about a second, instead of waiting 30–60 seconds for every address to time out.
+* **🧙‍♂️ Friendlier Setup:** The wizard now shows a "Connecting..." message while it reaches your server, and a clear error (instead of appearing frozen) if the server can't be reached.
+* **🎬 Movie Covers Fixed:** Movie artwork is back, and movies are now matched by title **and** release year so same-titled films show the right poster.
+* **🎵 Deezer Music Metadata:** Music covers and links now come from Deezer, with a "View on Deezer" button.
+* **🔂 Single Instance:** Only one copy of PlexRPC can run at a time, so duplicate instances can't fight over your Discord status.
+* **📶 Smarter Retries:** Failed or rate-limited metadata lookups are cached briefly instead of retried every few seconds, and the app backs off gracefully if the metadata service is unavailable.
+* **🆔 Better User Matching & Diagnostics:** Sessions now match on your display name as well as your username, and the log records which users it saw when a playing session doesn't match your profile.
 
 ## ✨ Key Features
 
 * **🧙‍♂️ Configless Setup:** A guided GUI walks you through linking your account, selecting your server, and picking your user profile.
 * **☁️ Cloud Metadata API:** Powered by a custom backend to fetch high-quality covers from **TMDB** (Movies/TV), **Google Books** (Audiobooks), and **Deezer** (Music).
 * **🎧 Audiobook Recognition:** Smartly detects audiobook libraries to display book covers and author details instead of generic placeholders.
-* **👥 Multi-User Support:** Works perfectly with Plex Home / Managed Users. You pick exactly which profile to track (great for shared family servers).
-* **🛡️ Silent & Secure:** Runs silently in the System Tray with secure API headers.
-* **🚀 Run on Startup:** A true "set and forget" experience. You can now toggle **Run on Startup** directly from the System Tray menu.
-* **⏯️ Smart Pause Detection:** The app now detects when you pause your media. It updates your status text to "(Paused)" and hides the progress bar so your timer doesn't drift.
-* **👀 Dynamic Activity Status:** Discord now correctly displays **"Watching Plex"** for movies/series and **"Listening to Plex"** for music/audiobooks.
-* **📊 Universal Progress Bar:** Added beautiful progress bars for Video content, Music tracks and Audiobooks.
+* **🎵 Rich Music Details:** Music shows "by Artist" on the second line and the **Album Name** in the hover text and 3rd line.
+* **👥 Multi-User Support:** Works perfectly with Plex Home / Managed Users. You pick exactly which profile to track (great for shared family servers), and matching works even if your "Friendly Name" differs from your username.
+* **👻 Privacy Mode:** Temporarily pause your Rich Presence directly from the system tray without closing the app.
+* **🟢 Dynamic Status Icons:** The system tray icon changes color to reflect your status instantly:
+  * 🟢 **Green:** Playing
+  * 🔵 **Blue:** Paused
+  * ⚪ **Grey:** Privacy Mode (Paused Presence)
+  * 🟠 **Orange:** Idle (No active session)
+  * 🟡 **Yellow:** Connecting to Discord
+  * 🔴 **Red:** Connection Error
+* **🛡️ Silent & Secure:** Runs silently in the System Tray with secure API headers and an encrypted login token.
+* **🚀 Run on Startup:** A true "set and forget" experience. Toggle **Run on Startup** directly from the System Tray menu.
+* **⏯️ Smart Pause Detection:** Detects when you pause your media, updates your status text to "(Paused)" and hides the progress bar so your timer doesn't drift.
+* **👀 Dynamic Activity Status:** Discord displays **"Watching Plex"** for movies/series and **"Listening to Plex"** for music/audiobooks.
+* **📊 Universal Progress Bar:** Progress bars for video content, music tracks and audiobooks.
+* **🛠️ Robust Reset:** The "Reset Config" tray option cleanly wipes your settings without freezing.
+* **🧹 Auto-Maintenance & Clean Logs:** On launch, the app automatically cleans up bloated log files (`app.log`), and logging is tuned to cut the noise while keeping critical debug info.
 
 
 ## 📥 Installation
@@ -54,7 +62,7 @@ The latest update brings major stability improvements and user-requested feature
 2.  Double-click to run.
 3.  Follow the **Setup Wizard**:
     * **Login:** A browser window will open. Click "Approve" to link your account securely.
-    * **Server:** Choose which Plex Media Server to track.
+    * **Server:** Choose which Plex Media Server to track. Connecting can take up to a minute the first time.
     * **User:** Select your specific user profile.
     * **Libraries:** (Optional) Check any libraries that contain Audiobooks for enhanced metadata.
 4.  **Done!** The app will minimize to your system tray. 
@@ -86,6 +94,13 @@ The latest update brings major stability improvements and user-requested feature
 **"It says Idle when I'm playing something"**
 * This usually means you selected the wrong **User Profile** during setup.
 * If your server has "Admin" and "Kids", make sure you select the one you actually watch on.
+* Check `%APPDATA%\PlexRPC\app.log` for a line starting with `Active sessions found but none matched`. It lists the users Plex reported for each playing session, which is handy to include in a bug report.
+
+**"It says PlexRPC is already running"**
+* Another copy is already in your System Tray (check the hidden icons area). Quit it first if you want to restart the app.
+
+**"It says Plex Error after downgrading to v2.3"**
+* v2.4 stores your login in an encrypted format that older versions can't read. Use **Reset Config** and sign in again.
 
 ## 🧑‍💻 Development
 
@@ -114,7 +129,7 @@ If you want to run from source or build it yourself:
 5.  **Build .exe (PyInstaller):**
     If you want to build the standalone executable, use the provided spec file:
     ```bash
-    pyinstaller PlexRPC.spec
+    pyinstaller --clean PlexRPC.spec
     ```
     *(Or manually: `pyinstaller --noconsole --onefile --icon=assets/icon.ico --name=PlexRPC --add-data "assets;assets" main.py`)*
 

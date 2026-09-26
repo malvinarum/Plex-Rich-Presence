@@ -7,9 +7,12 @@ import webbrowser
 import requests
 import logging
 import uuid
+import base64
 import ctypes
+import ctypes.wintypes
 import winreg
 from plexapi.myplex import MyPlexAccount
+from plexapi.server import PlexServer
 from pypresence import Presence, ActivityType
 import pystray
 from PIL import Image, ImageTk, ImageDraw
@@ -19,7 +22,15 @@ from tkinter import ttk, messagebox
 # --- CONFIGURATION ---
 API_URL = "YOUR_API_URL_HERE"
 APP_NAME = "PlexRPC"
-VERSION = "2.3.0"
+VERSION = "2.4.0"
+
+# --- METADATA CACHE TTLs (seconds) ---
+MISS_CACHE_TTL = 5 * 60      # Worker answered but nothing was found
+ERROR_CACHE_TTL = 60         # Network error / rate limited / bad response
+
+# --- DISCORD CONFIG FETCH BACKOFF (seconds) ---
+DISCORD_BACKOFF_START = 15
+DISCORD_BACKOFF_MAX = 5 * 60
 
 
 # --- ASSET RESOURCE HELPER ---
@@ -54,6 +65,29 @@ if os.path.exists(LOG_FILE) and os.path.getsize(LOG_FILE) > 5 * 1024 * 1024:
 
 log_handlers = [logging.FileHandler(LOG_FILE), logging.StreamHandler(sys.stdout)]
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=log_handlers)
+
+# plexapi logs every unreachable server address as an ERROR during discovery, even when another
+# address connects fine. We log connection outcomes ourselves, so keep only its critical messages.
+logging.getLogger('plexapi').setLevel(logging.CRITICAL)
+
+PLEX_DIRECT_TIMEOUT = 5  # seconds to try the saved server address before falling back to discovery
+
+
+# --- SINGLE INSTANCE GUARD ---
+_instance_mutex = None  # Keep a reference so the handle lives as long as the process
+
+
+def acquire_single_instance():
+    """Returns True if this is the only running PlexRPC instance (per Windows session)."""
+    global _instance_mutex
+    ERROR_ALREADY_EXISTS = 183
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel32.CreateMutexW.restype = ctypes.wintypes.HANDLE
+    kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, ctypes.wintypes.BOOL, ctypes.wintypes.LPCWSTR]
+    _instance_mutex = kernel32.CreateMutexW(None, False, f"Local\\{APP_NAME}_SingleInstance")
+    if not _instance_mutex:
+        return True  # If the guard itself fails, don't block the app from starting
+    return ctypes.get_last_error() != ERROR_ALREADY_EXISTS
 
 
 def dark_title_bar(window):
@@ -110,6 +144,91 @@ def fetch_config(client_uuid, app_version):
     except Exception as e:
         logging.error(f"Failed to fetch config: {e}")
         return None
+
+
+# --- 🔐 DPAPI TOKEN ENCRYPTION (Windows, per-user, no extra dependencies) ---
+class DATA_BLOB(ctypes.Structure):
+    _fields_ = [("cbData", ctypes.wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_char))]
+
+
+CRYPTPROTECT_UI_FORBIDDEN = 0x01
+
+
+def _dpapi_call(func, data, description=None):
+    buf = ctypes.create_string_buffer(data, len(data))
+    blob_in = DATA_BLOB(len(data), ctypes.cast(buf, ctypes.POINTER(ctypes.c_char)))
+    blob_out = DATA_BLOB()
+    if not func(ctypes.byref(blob_in), description, None, None, None,
+                CRYPTPROTECT_UI_FORBIDDEN, ctypes.byref(blob_out)):
+        raise ctypes.WinError()
+    try:
+        return ctypes.string_at(blob_out.pbData, blob_out.cbData)
+    finally:
+        ctypes.windll.kernel32.LocalFree(ctypes.cast(blob_out.pbData, ctypes.c_void_p))
+
+
+def protect_secret(plaintext):
+    """Encrypts a string so only the current Windows user on this machine can decrypt it."""
+    enc = _dpapi_call(ctypes.windll.crypt32.CryptProtectData, plaintext.encode('utf-8'), APP_NAME)
+    return base64.b64encode(enc).decode('ascii')
+
+
+def unprotect_secret(encoded):
+    dec = _dpapi_call(ctypes.windll.crypt32.CryptUnprotectData, base64.b64decode(encoded))
+    return dec.decode('utf-8')
+
+
+# --- CONFIG FILE HELPERS ---
+def write_config(data):
+    """Writes config to disk, never persisting the plaintext token when an encrypted copy exists."""
+    to_disk = dict(data)
+    if to_disk.get('auth_token_enc'):
+        to_disk.pop('auth_token', None)
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(to_disk, f, indent=4)
+
+
+def read_config():
+    """Loads config, migrates plaintext tokens to DPAPI, and returns it with 'auth_token' decrypted in memory."""
+    if not os.path.exists(CONFIG_FILE):
+        return None
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        logging.error(f"Config file unreadable: {e}")
+        return None
+
+    changed = False
+
+    if 'client_uuid' not in data:
+        data['client_uuid'] = str(uuid.uuid4())
+        changed = True
+
+    # One-time migration: encrypt legacy plaintext tokens
+    if data.get('auth_token') and not data.get('auth_token_enc'):
+        try:
+            data['auth_token_enc'] = protect_secret(data['auth_token'])
+            changed = True
+            logging.info("Migrated stored Plex token to encrypted storage.")
+        except Exception as e:
+            logging.warning(f"Could not encrypt stored token, keeping legacy format: {e}")
+
+    token = None
+    if data.get('auth_token_enc'):
+        try:
+            token = unprotect_secret(data['auth_token_enc'])
+        except Exception as e:
+            # Typically means the config was copied from another PC or Windows user
+            logging.error(f"Could not decrypt stored token: {e}")
+    if token is None:
+        token = data.get('auth_token')
+
+    if changed:
+        write_config(data)
+
+    data['auth_token'] = token  # In-memory only
+    return data
 
 
 # --- DYNAMIC TRAY ICON GENERATOR ---
@@ -225,8 +344,22 @@ class SetupWizard:
         self.selected_server = self.servers[self.server_combo.current()]
         for w in self.content_frame.winfo_children(): w.destroy()
 
+        # Discovery tries every address Plex knows for the server; unreachable ones can take a while to time out
+        self.status_lbl.config(text=f"Connecting to {self.selected_server.name}...\n"
+                                    "This can take up to a minute, please wait.")
+
         def fetch_users():
-            self.plex_instance = self.selected_server.connect()
+            try:
+                self.plex_instance = self.selected_server.connect()
+                logging.info(f"Setup connected to {self.selected_server.name} via {self.plex_instance._baseurl}")
+            except Exception as e:
+                logging.error(f"Setup could not connect to {self.selected_server.name}: {e}")
+                self.root.after(0, lambda: messagebox.showerror(
+                    "Connection Failed",
+                    f"Couldn't reach '{self.selected_server.name}'.\n\n"
+                    "Make sure the server is online and that you own it or are a Home/managed user on it."))
+                self.root.after(0, self._render_server_list)
+                return
             try:
                 self.users = self.plex_instance.myPlexAccount().users()
                 self.users.insert(0, self.plex_instance.myPlexAccount())
@@ -249,6 +382,8 @@ class SetupWizard:
 
     def select_libraries(self):
         self.selected_user = self.user_combo.get()
+        # Keep the full user object so we can also store its display title for matching
+        self.selected_user_obj = self.users[self.user_combo.current()]
         for w in self.content_frame.winfo_children(): w.destroy()
 
         # Step 4: Library Selection Text
@@ -264,14 +399,23 @@ class SetupWizard:
         ttk.Button(self.content_frame, text="Finish Setup", command=self.save_config).pack(pady=20)
 
     def save_config(self):
+        token = self.account.authenticationToken
         config_data = {
-            "auth_token": self.account.authenticationToken,
             "server_name": self.selected_server.name,
+            "server_id": getattr(self.selected_server, 'clientIdentifier', None),
+            "server_url": getattr(self.plex_instance, '_baseurl', None),
             "user_filter": self.selected_user,
+            # Display name / friendly title — sessions sometimes report this instead of the username
+            "user_title": getattr(self.selected_user_obj, 'title', None) or self.selected_user,
             "audiobook_libraries": [n for n, v in self.lib_vars.items() if v.get()],
             "client_uuid": self.client_identifier
         }
-        with open(CONFIG_FILE, 'w') as f: json.dump(config_data, f, indent=4)
+        try:
+            config_data["auth_token_enc"] = protect_secret(token)
+        except Exception as e:
+            logging.warning(f"Token encryption unavailable, storing in legacy format: {e}")
+            config_data["auth_token"] = token
+        write_config(config_data)
         self.root.destroy()
 
     def run(self):
@@ -279,32 +423,58 @@ class SetupWizard:
 
 
 class PlexPresence:
-    def __init__(self):
+    def __init__(self, config):
         self.running, self.rpc, self.plex, self.cache = True, None, None, {}
-        self.config = self.load_config()
+        self.config = config
         self.discord_client_id, self.latest_server_version = None, None
         self.last_activity_log = None
+        self.last_unmatched_log = None
         self.status_color = "orange"
         self.status_text = "Idle"
         self.tray_icon = None
         self.last_tray_color = None
         self.paused = False  # Ghost Mode Flag
 
-    def load_config(self):
-        if not os.path.exists(CONFIG_FILE): return None
-        with open(CONFIG_FILE, 'r') as f:
-            data = json.load(f)
-            if 'client_uuid' not in data:
-                data['client_uuid'] = str(uuid.uuid4())
-                with open(CONFIG_FILE, 'w') as f: json.dump(data, f, indent=4)
-            return data
+        # Backoff state for fetching the Discord client ID from the API
+        self.discord_backoff = DISCORD_BACKOFF_START
+        self.next_discord_attempt = 0
+
+    def _try_saved_address(self):
+        url = self.config.get('server_url')
+        if not url:
+            return False
+        try:
+            server = PlexServer(url, self.config['auth_token'], timeout=PLEX_DIRECT_TIMEOUT)
+            expected_id = self.config.get('server_id')
+            if expected_id and server.machineIdentifier != expected_id:
+                logging.info(f"Saved address {url} is a different server now, rediscovering...")
+                return False
+            self.plex = server
+            logging.info(f"Connected to Plex Server: {self.config['server_name']} via saved address {url}")
+            return True
+        except Exception as e:
+            logging.info(f"Saved address {url} unreachable ({type(e).__name__}), rediscovering...")
+            return False
 
     def connect_plex(self):
         try:
             logging.info("Connecting to Plex...")
+            if self._try_saved_address():
+                return True
+
             account = MyPlexAccount(token=self.config['auth_token'])
-            self.plex = account.resource(self.config['server_name']).connect()
-            logging.info(f"Connected to Plex Server: {self.config['server_name']}")
+            resource = account.resource(self.config['server_name'])
+            self.plex = resource.connect()
+            logging.info(f"Connected to Plex Server: {self.config['server_name']} via {self.plex._baseurl}")
+
+            # Remember what worked so the next launch skips discovery
+            new_url = self.plex._baseurl
+            new_id = getattr(resource, 'clientIdentifier', None)
+            if new_url != self.config.get('server_url') or (new_id and new_id != self.config.get('server_id')):
+                self.config['server_url'] = new_url
+                if new_id:
+                    self.config['server_id'] = new_id
+                write_config(self.config)
             return True
         except Exception as e:
             logging.error(f"Plex Connection Error: {e}")
@@ -315,9 +485,19 @@ class PlexPresence:
     def connect_discord(self):
         try:
             if not self.discord_client_id:
+                # Respect backoff so an API outage doesn't get hammered every loop by every client
+                if time.time() < self.next_discord_attempt:
+                    return
+
                 cfg = fetch_config(self.config.get('client_uuid', 'unknown'), VERSION)
-                if cfg:
+                if cfg and cfg.get('client_id') and cfg['client_id'] != "MISSING_ID":
                     self.discord_client_id, self.latest_server_version = cfg['client_id'], cfg['latest_version']
+                    self.discord_backoff = DISCORD_BACKOFF_START
+                else:
+                    self.next_discord_attempt = time.time() + self.discord_backoff
+                    logging.warning(f"Could not get Discord client ID, retrying in {self.discord_backoff}s")
+                    self.discord_backoff = min(self.discord_backoff * 2, DISCORD_BACKOFF_MAX)
+                    return
 
             if self.discord_client_id:
                 logging.info(f"Connecting to Discord RPC (ID: {self.discord_client_id})...")
@@ -330,11 +510,69 @@ class PlexPresence:
             self.status_text = "Discord Disconnected"
             self.rpc = None
 
+    # --- USER MATCHING ---
+    def _target_names(self):
+        names = {self.config.get('user_filter'), self.config.get('user_title')}
+        return {n.lower() for n in names if n}
+
+    @staticmethod
+    def _session_names(session):
+        return {u.lower() for u in (getattr(session, 'usernames', None) or []) if u}
+
+    def _find_session(self, sessions):
+        targets = self._target_names()
+        for s in sessions:
+            if targets & self._session_names(s):
+                return s
+
+        # Nothing matched — log what we saw (once per change) so identity issues are diagnosable
+        if sessions:
+            seen = tuple(sorted(
+                f"{getattr(s, 'title', '?')} [{', '.join(getattr(s, 'usernames', None) or []) or 'no username'}]"
+                for s in sessions))
+            if seen != self.last_unmatched_log:
+                logging.info(f"Active sessions found but none matched {sorted(targets)}: {list(seen)}")
+                self.last_unmatched_log = seen
+        else:
+            self.last_unmatched_log = None
+        return None
+
+    # --- METADATA LOOKUP WITH NEGATIVE CACHING ---
+    def _lookup_metadata(self, type_, q, album_name, year=None):
+        cache_key = (type_, q, album_name or '', year or '')
+        entry = self.cache.get(cache_key)
+        if entry and (entry['expires'] is None or entry['expires'] > time.time()):
+            return entry['data']
+
+        req_params = {'q': q}
+        if type_ == 'music' and album_name:
+            req_params['album'] = album_name
+        if type_ == 'movie' and year:
+            req_params['year'] = year
+
+        ttl = ERROR_CACHE_TTL
+        res = {}
+        try:
+            r = requests.get(f"{API_URL}/api/metadata/{type_}", params=req_params,
+                             headers={"X-Client-UUID": self.config.get('client_uuid', 'unknown'),
+                                      "X-App-Version": VERSION}, timeout=3)
+            if r.status_code == 429:
+                logging.warning(f"Metadata API rate limited for {type_}: {q}")
+            elif r.ok:
+                res = r.json()
+                ttl = None if res.get('found') else MISS_CACHE_TTL
+            else:
+                logging.warning(f"Metadata API returned {r.status_code} for {type_}: {q}")
+        except Exception as e:
+            logging.warning(f"Metadata lookup failed for {type_}: {q} ({e})")
+
+        self.cache[cache_key] = {'data': res, 'expires': None if ttl is None else time.time() + ttl}
+        return res
+
     def get_activity(self):
         try:
             sessions = self.plex.sessions()
-            current = next(
-                (s for s in sessions if self.config['user_filter'].lower() in [u.lower() for u in s.usernames]), None)
+            current = self._find_session(sessions)
 
             if not current:
                 self.status_color = "orange"
@@ -368,7 +606,9 @@ class PlexPresence:
             elif is_paused:
                 status['state'], status['small_text'] = "Paused", "Paused"
 
-            q, type_, album_name = current.title, 'movie', None
+            q, type_, album_name, artist = current.title, 'movie', None, None
+            # Release year disambiguates same-titled films (e.g. "Unthinkable")
+            year = getattr(current, 'year', None) if current.type == 'movie' else None
 
             if current.type == 'episode':
                 q, type_ = current.grandparentTitle, 'tv'
@@ -388,38 +628,23 @@ class PlexPresence:
                                                                   []) or 'book' in current.librarySectionTitle.lower():
                     q, type_, status['large_image'] = f"{current.title} {artist}", 'book', "book_icon"
                 else:
-                    # Only search Artist + Title to prevent confusing iTunes
+                    # Only search Artist + Title to keep the music search precise
                     q, type_, status['large_image'] = f"{artist} {current.title}".strip(), 'music', "plex_logo"
 
             status['activity_type'] = current_activity_type
 
             if q:
-                # Add album to the cache key so different album versions of the same song don't collide
-                cache_key = (type_, q, album_name if album_name else '')
-                res = self.cache.get(cache_key)
-
-                if not res:
-                    try:
-                        req_params = {'q': q}
-                        if type_ == 'music' and album_name:
-                            req_params['album'] = album_name
-
-                        res = requests.get(f"{API_URL}/api/metadata/{type_}", params=req_params,
-                                           headers={"X-Client-UUID": self.config.get('client_uuid', 'unknown'),
-                                                    "X-App-Version": VERSION}, timeout=3).json()
-                        if res.get('found'): self.cache[cache_key] = res
-                    except:
-                        res = {}
+                res = self._lookup_metadata(type_, q, album_name, year)
 
                 if res.get('found'):
                     status['large_image'] = res['image']
                     if not status.get('large_text') or status['large_text'] == artist:
-                        # Fallback to the album iTunes found if Plex was missing it
+                        # Fallback to the album the API found if Plex was missing it
                         status['large_text'] = res.get('album', res.get('title', q))
                     if res.get('line1'): status['details'] = res['line1']
                     if res.get('line2') and type_ != 'music': status['state'] = res['line2']
                     if res.get('url'):
-                        btn_label = "View on iTunes" if type_ == 'music' else "View Book" if type_ == 'book' else "View on TMDB"
+                        btn_label = "View on Deezer" if type_ == 'music' else "View Book" if type_ == 'book' else "View on TMDB"
                         status['buttons'].insert(0, {"label": btn_label, "url": res['url']})
                         status['buttons'] = status['buttons'][:2]
 
@@ -478,8 +703,6 @@ class PlexPresence:
                 self.status_text = "Connecting Discord..."
                 self.update_tray_icon()
                 self.connect_discord()
-                if not self.rpc:
-                    pass
 
             activity = self.get_activity()
 
@@ -585,9 +808,23 @@ def create_tray(app):
 
 
 if __name__ == "__main__":
-    if not os.path.exists(CONFIG_FILE):
+    if not acquire_single_instance():
+        logging.info("Another PlexRPC instance is already running. Exiting.")
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            f"{APP_NAME} is already running.\n\nCheck your system tray (including the hidden icons area).",
+            APP_NAME,
+            0x40  # MB_ICONINFORMATION
+        )
+        sys.exit()
+
+    config = read_config()
+    if not config or not config.get('auth_token'):
+        if config:
+            logging.warning("Stored credentials are unreadable on this PC/user. Re-running setup.")
         SetupWizard().run()
-        if not os.path.exists(CONFIG_FILE): sys.exit()
-    app = PlexPresence()
+        config = read_config()
+        if not config or not config.get('auth_token'): sys.exit()
+    app = PlexPresence(config)
     threading.Thread(target=app.update_loop, daemon=True).start()
     create_tray(app)

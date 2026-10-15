@@ -133,6 +133,15 @@ If you want to run from source or build it yourself:
     ```
     *(Or manually: `pyinstaller --noconsole --onefile --icon=assets/icon.ico --name=PlexRPC --add-data "assets;assets" main.py`)*
 
+## 💛 Supporters
+
+PlexRPC is a free, open-source side project. These people chose to support its development, and it genuinely keeps the project going. Thank you!
+
+* **Jorrex**
+
+Want to support PlexRPC too? [Buy me a coffee](https://www.buymeacoffee.com/malvinarum) or [sponsor on GitHub](https://github.com/sponsors/malvinarum).
+
+
 ## 📜 License
 
 This project is open-source. Feel free to fork, modify, and distribute.

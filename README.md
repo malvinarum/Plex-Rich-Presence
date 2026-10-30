@@ -144,7 +144,7 @@ Want to support PlexRPC too? [Buy me a coffee](https://www.buymeacoffee.com/malv
 
 ## 📜 License
 
-This project is open-source. Feel free to fork, modify, and distribute.
+This project is licensed under the [GPL-3.0 license](LICENSE). Feel free to fork, modify, and distribute it, as long as derivative works are also released as open source under GPL-3.0.
 
 ## Disclaimer
 

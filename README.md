@@ -18,6 +18,7 @@
 **PlexRPC** is a modern, lightweight, and user-friendly application that syncs your Plex media status to your Discord profile. 
 
 Unlike other scripts that require editing complex JSON config files, PlexRPC features a **Unified Setup Wizard** that handles everything for you—from secure login to custom library settings.
+No installation or Python required. Download PlexRPC.exe, double-click it, sign in with your Plex account in the browser, and you’re done. It runs quietly in your system tray.
 
 ## ✨ New in v2.4
 
